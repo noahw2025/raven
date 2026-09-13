@@ -1,0 +1,195 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: raven
+      POSTGRES_USER: raven
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - raven_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U raven -d raven"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    security_opt: ["no-new-privileges:true"]
+    networks: [backend]
+
+  raven:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db: {condition: service_healthy}
+      ollama: {condition: service_started}
+      searxng: {condition: service_started}
+      voice: {condition: service_healthy}
+    environment:
+      DATABASE_URL: postgresql://raven:${POSTGRES_PASSWORD}@db:5432/raven
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-openrouter/free}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      NVIDIA_RESEARCH_MODEL: ${NVIDIA_RESEARCH_MODEL:-nvidia/nemotron-3.5-lightning-30b-a3b}
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
+      OLLAMA_URL: http://ollama:11434
+      SEARXNG_URL: http://searxng:8080
+      HERMES_MCP_SERVERS_JSON: ${HERMES_MCP_SERVERS_JSON:-{}}
+      LOCAL_VOICE_URL: http://voice:8090
+      RAVEN_ADMIN_PASSWORD: ${RAVEN_ADMIN_PASSWORD:?Set RAVEN_ADMIN_PASSWORD in .env}
+      RAVEN_JWT_SECRET: ${RAVEN_JWT_SECRET:?Set RAVEN_JWT_SECRET in .env}
+      RAVEN_MODEL: ${RAVEN_MODEL:-qwen3:8b}
+      RAVEN_VOICE_MODEL: ${RAVEN_VOICE_MODEL:-qwen3:8b}
+      RAVEN_EMBEDDING_MODEL: ${RAVEN_EMBEDDING_MODEL:-nomic-embed-text}
+      RAVEN_REALTIME_MODEL: ${RAVEN_REALTIME_MODEL:-gpt-realtime-mini}
+      RAVEN_REALTIME_VOICE: ${RAVEN_REALTIME_VOICE:-marin}
+      RAVEN_MAX_CONTEXT_CHUNKS: ${RAVEN_MAX_CONTEXT_CHUNKS:-6}
+      RAVEN_MAX_CONTEXT_CHARS: ${RAVEN_MAX_CONTEXT_CHARS:-12000}
+      RAVEN_PUBLIC_ORIGIN: ${RAVEN_PUBLIC_ORIGIN:-http://localhost:8080}
+      HERMES_URL: http://hermes:8092
+      HERMES_TOKEN: ${RAVEN_JWT_SECRET}
+      CONTENT_TEXT_PROVIDER: ${CONTENT_TEXT_PROVIDER:-openrouter}
+      CONTENT_TEXT_MODEL: ${CONTENT_TEXT_MODEL:-qwen3:8b}
+      OPENAI_FALLBACK_MODEL: ${OPENAI_FALLBACK_MODEL:-gpt-4.1-mini}
+      RAVEN_RESEARCH_PROVIDER: ${RAVEN_RESEARCH_PROVIDER:-openrouter}
+      RAVEN_RESEARCH_MODEL: ${RAVEN_RESEARCH_MODEL:-gpt-5.6-terra}
+      RAVEN_RESEARCH_BUDGET_USD: ${RAVEN_RESEARCH_BUDGET_USD:-0.25}
+      COMFYUI_URL: ${COMFYUI_URL:-}
+      COMFYUI_WORKFLOW_PATH: ${COMFYUI_WORKFLOW_PATH:-/config/comfyui-workflow.json}
+      COMFYUI_PROMPT_NODE_ID: ${COMFYUI_PROMPT_NODE_ID:-6}
+      COMFYUI_PROMPT_INPUT: ${COMFYUI_PROMPT_INPUT:-text}
+      COMFYUI_IMAGE_WORKFLOW_PATH: ${COMFYUI_IMAGE_WORKFLOW_PATH:-/config/comfyui-image-workflow.json}
+      COMFYUI_IMAGE_PROMPT_NODE_ID: ${COMFYUI_IMAGE_PROMPT_NODE_ID:-6}
+      COMFYUI_VIDEO_WORKFLOW_PATH: ${COMFYUI_VIDEO_WORKFLOW_PATH:-/config/comfyui-video-workflow.json}
+      COMFYUI_VIDEO_PROMPT_NODE_ID: ${COMFYUI_VIDEO_PROMPT_NODE_ID:-6}
+      INSTAGRAM_API_BASE: ${INSTAGRAM_API_BASE:-https://graph.instagram.com}
+      INSTAGRAM_API_VERSION: ${INSTAGRAM_API_VERSION:-v24.0}
+      INSTAGRAM_USER_ID: ${INSTAGRAM_USER_ID:-}
+      INSTAGRAM_ACCESS_TOKEN: ${INSTAGRAM_ACCESS_TOKEN:-}
+      INSTAGRAM_PUBLISH_ENABLED: ${INSTAGRAM_PUBLISH_ENABLED:-false}
+      X_ACCESS_TOKEN: ${X_ACCESS_TOKEN:-}
+      X_PUBLISH_ENABLED: ${X_PUBLISH_ENABLED:-false}
+      YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID:-}
+      YOUTUBE_CLIENT_SECRET: ${YOUTUBE_CLIENT_SECRET:-}
+      YOUTUBE_REFRESH_TOKEN: ${YOUTUBE_REFRESH_TOKEN:-}
+      YOUTUBE_PUBLISH_ENABLED: ${YOUTUBE_PUBLISH_ENABLED:-false}
+      CAREER_APPLY_URL: ${CAREER_APPLY_URL:-}
+      CAREER_APPLY_TOKEN: ${CAREER_APPLY_TOKEN:-}
+      CAREER_APPLY_ENABLED: ${CAREER_APPLY_ENABLED:-false}
+      DESKTOP_BRIDGE_URL: ${DESKTOP_BRIDGE_URL:-http://host.docker.internal:8765}
+      DESKTOP_BRIDGE_TOKEN: ${DESKTOP_BRIDGE_TOKEN:-}
+      DESKTOP_BRIDGE_ENABLED: ${DESKTOP_BRIDGE_ENABLED:-false}
+      DISCORD_CHANNELS_JSON: ${DISCORD_CHANNELS_JSON:-{}}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      SPOTIFY_REFRESH_TOKEN: ${SPOTIFY_REFRESH_TOKEN:-}
+      SPOTIFY_PLAYBACK_ENABLED: ${SPOTIFY_PLAYBACK_ENABLED:-false}
+      SPOTIFY_MARKET: ${SPOTIFY_MARKET:-US}
+      RAVEN_TIMEZONE: ${RAVEN_TIMEZONE:-America/New_York}
+      RAVEN_OWNER_NAME: ${RAVEN_OWNER_NAME:-Noah}
+      WORLD_AISSTREAM_API_KEY: ${WORLD_AISSTREAM_API_KEY:-}
+      WORLD_LL2_TOKEN: ${WORLD_LL2_TOKEN:-}
+    ports: ["127.0.0.1:8080:8080"]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    networks: [frontend, backend, search_egress]
+    volumes:
+      - ./comfyui:/config:ro
+
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    gpus: all
+    environment:
+      # Keep the small embedding model and the single Qwen model resident.
+      # A limit of one forced a 60s reload between retrieval and generation.
+      OLLAMA_MAX_LOADED_MODELS: 2
+      OLLAMA_NUM_PARALLEL: 1
+    volumes: [ollama_models:/root/.ollama]
+    networks: [backend, model_egress]
+    security_opt: ["no-new-privileges:true"]
+
+  searxng:
+    image: searxng/searxng:latest
+    restart: unless-stopped
+    volumes: [./searxng/settings.yml:/etc/searxng/settings.yml:ro]
+    networks: [backend, search_egress]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETGID, SETUID]
+    security_opt: ["no-new-privileges:true"]
+
+  voice:
+    build: ./voice_service
+    restart: unless-stopped
+    gpus: all
+    environment:
+      PHONEMIZER_ESPEAK_LIBRARY: /lib/x86_64-linux-gnu/libespeak-ng.so.1
+      TMPDIR: /models/runtime-tmp
+      NUMBA_CACHE_DIR: /models/runtime-tmp/numba
+      MPLCONFIGDIR: /models/runtime-tmp/matplotlib
+      XDG_CACHE_HOME: /models/runtime-tmp/cache
+      STT_PRIMARY_MODEL: ${STT_PRIMARY_MODEL:-large-v3-turbo}
+      STT_DEVICE: ${STT_DEVICE:-cuda}
+      STT_COMPUTE_TYPE: ${STT_COMPUTE_TYPE:-float16}
+      STT_FALLBACK_MODEL: ${STT_FALLBACK_MODEL:-base.en}
+      PARAKEET_MODEL: ${PARAKEET_MODEL:-nvidia/parakeet_realtime_eou_120m-v1}
+      PARAKEET_DEVICE: ${PARAKEET_DEVICE:-cuda}
+    volumes:
+      - voice_models:/models
+      - ./voice_service/service.py:/service/service.py:ro
+      - ./voice_service/parakeet_stream.py:/service/parakeet_stream.py:ro
+    networks: [backend, model_egress]
+    read_only: true
+    tmpfs: [/tmp:exec]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    ports: ["127.0.0.1:8090:8090"]
+
+  hermes:
+    build:
+      context: ../..
+      dockerfile: outputs/raven/hermes_service/Dockerfile
+    restart: unless-stopped
+    environment:
+      HERMES_TOKEN: ${RAVEN_JWT_SECRET}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-openrouter/free}
+      SEARXNG_URL: http://searxng:8080
+      HERMES_MCP_SERVERS_JSON: ${HERMES_MCP_SERVERS_JSON:-{}}
+      HERMES_MCP_AUTH_TOKEN: ${HERMES_MCP_AUTH_TOKEN:-}
+      NVIDIA_API_KEY: ${NVIDIA_API_KEY:-}
+      NVIDIA_RESEARCH_MODEL: ${NVIDIA_RESEARCH_MODEL:-nvidia/nemotron-3.5-lightning-30b-a3b}
+      FORGE_OPENROUTER_MODEL: ${FORGE_OPENROUTER_MODEL:-nvidia/nemotron-3-super-120b-a12b:free}
+      FORGE_NVIDIA_MODEL: ${FORGE_NVIDIA_MODEL:-nvidia/nemotron-3.5-lightning-30b-a3b}
+      FORGE_LOCAL_MODEL: ${FORGE_LOCAL_MODEL:-qwen3:8b}
+      FORGE_OLLAMA_URL: http://ollama:11434/v1
+      FORGE_WORKSPACE_ROOT: /workspace
+      FORGE_EXTERNAL_PROJECTS_ROOT: /external-projects
+    networks: [backend, model_egress]
+    read_only: true
+    tmpfs: [/tmp:size=256m]
+    volumes:
+      - ../..:/workspace:rw
+      - type: bind
+        source: ${RAVEN_PROJECTS_ROOT:-C:/Users/ark73/Documents/Codex/RAVEN-Projects}
+        target: /external-projects
+      # Mask the host secret file inside the otherwise repository-scoped mount.
+      # A real empty file is portable across Docker Desktop and Linux hosts.
+      - ./hermes_service/empty.env:/workspace/outputs/raven/.env:ro
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 2g
+    cpus: 2
+
+volumes:
+  raven_db:
+  ollama_models:
+  voice_models:
+networks:
+  frontend:
+  backend:
+    internal: true
+  search_egress:
+  model_egress:

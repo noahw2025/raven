@@ -1,0 +1,24 @@
+const fs=require('fs');
+const assert=require('assert');
+const js=fs.readFileSync('app/static/forge.js','utf8');
+const workspace=fs.readFileSync('app/static/workspace.js','utf8');
+const html=fs.readFileSync('app/static/index.html','utf8');
+
+assert.match(workspace,/\['forge','Forge'/,'Forge is a first-class workspace');
+assert.match(js,/\/forge\/projects/,'project API is wired');
+assert.match(js,/\/forge\/jobs/,'job API is wired');
+for(const tab of ['activity','plan','diff','tests','files','logs'])assert.match(js,new RegExp(`['\"]${tab}['\"]`));
+for(const action of ['pause','resume','continue','cancel'])assert.match(js,new RegExp(`data-control=["']${action}["']`));
+assert.match(html,/forge\.css/);
+assert.match(html,/forge\.js/);
+assert.match(js,/MODEL ACTUALLY USED/,'the selected model remains visible after a job starts');
+assert.match(js,/ACCESS MODE/,'the selected authority mode remains visible after a job starts');
+assert.match(js,/forgeProgressBar/,'running jobs expose a visible progress indicator');
+assert.match(js,/pollForgeJob/,'running jobs update incrementally');
+assert.doesNotMatch(js,/setTimeout\(\(\)=>state\.page==='forge'&&renderForgeJob/,'polling must not replace the entire workspace and reset scroll positions');
+assert.match(js,/researchMarkdown/,'assistant reports should render as readable HTML instead of raw Markdown syntax');
+assert.match(js,/\/forge\/projects\/external/,'independent project creation is wired');
+assert.match(js,/OPEN IN VS CODE/,'external projects expose the verified VS Code launcher');
+assert.match(js,/Independent project outside RAVEN/,'external projects are clearly distinguished from RAVEN source access');
+assert.doesNotMatch(js,/OPENROUTER_API_KEY|NVIDIA_API_KEY/,'browser bundle must not name or contain provider secrets');
+console.log('Forge UI contract passed');

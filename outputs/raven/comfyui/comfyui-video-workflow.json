@@ -1,0 +1,12 @@
+{
+  "3": {"class_type":"KSampler","inputs":{"seed":424242,"steps":24,"cfg":6.0,"sampler_name":"uni_pc","scheduler":"simple","denoise":1.0,"model":["48",0],"positive":["6",0],"negative":["7",0],"latent_image":["40",0]}},
+  "6": {"class_type":"CLIPTextEncode","inputs":{"text":"RAVEN video prompt","clip":["38",0]}},
+  "7": {"class_type":"CLIPTextEncode","inputs":{"text":"overexposed, static, blurry, low quality, watermark, distorted anatomy, frozen frame","clip":["38",0]}},
+  "8": {"class_type":"VAEDecode","inputs":{"samples":["3",0],"vae":["39",0]}},
+  "37": {"class_type":"UNETLoader","inputs":{"unet_name":"wan2.1_t2v_1.3B_fp16.safetensors","weight_dtype":"default"}},
+  "38": {"class_type":"CLIPLoader","inputs":{"clip_name":"umt5_xxl_fp8_e4m3fn_scaled.safetensors","type":"wan","device":"cpu"}},
+  "39": {"class_type":"VAELoader","inputs":{"vae_name":"wan_2.1_vae.safetensors"}},
+  "40": {"class_type":"EmptyHunyuanLatentVideo","inputs":{"width":512,"height":288,"length":17,"batch_size":1}},
+  "47": {"class_type":"SaveWEBM","inputs":{"filename_prefix":"RAVEN/video","codec":"vp9","fps":16.0,"crf":30.0,"images":["8",0]}},
+  "48": {"class_type":"ModelSamplingSD3","inputs":{"shift":8.0,"model":["37",0]}}
+}

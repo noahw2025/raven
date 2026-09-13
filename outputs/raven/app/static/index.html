@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#03090b"><title>RAVEN // Personal Intelligence</title><link rel="stylesheet" href="/static/styles.css?v=20260902d"><link rel="stylesheet" href="/static/ops.css?v=20260902d"><link rel="stylesheet" href="/static/research.css?v=20260902d"><link rel="stylesheet" href="/static/refine.css?v=20260902d"><link rel="stylesheet" href="/static/task-pulse.css?v=20260904a"></head>
+<body>
+  <div class="noise"></div><div class="grid-field"></div>
+  <section id="login" class="login" style="display:none"><form id="loginForm" class="login-panel"><div class="raven-mark"><span>R</span><i></i><b></b></div><div class="kicker">PERSONAL INTELLIGENCE ENVIRONMENT</div><h1>RAVEN</h1><p>Private access to your cognitive operating system.</p><label>LOCAL ACCESS KEY<input id="password" type="password" autocomplete="current-password" required></label><button class="primary">INITIALIZE SESSION</button><small id="loginError"></small></form></section>
+  <div id="shell" hidden>
+    <aside class="rail">
+      <div class="identity"><div class="mini-mark">R</div><div><strong>RAVEN</strong><small>OWNER NODE // 01</small></div></div>
+      <nav id="nav"></nav>
+      <div class="rail-status"><div class="signal"><i></i><span><b id="railState">SYSTEM READY</b><small id="railSub">Private · localhost</small></span></div><div class="micro-stats"><span><b id="navRuns">0</b> RUNS</span><span><b id="navMem">0</b> MEMORIES</span></div></div>
+    </aside>
+    <main>
+      <header class="topbar"><div><div class="breadcrumb">RAVEN / <span id="breadcrumb">COMMAND</span></div><h1 id="pageTitle">Command Nexus</h1></div><div class="top-actions"><div id="modelBadge" class="model-pill"><i></i><span>MODEL</span></div><button id="notifications" class="square">◈<em id="notificationCount">0</em></button><button id="wakeToggle" class="wake-control" aria-pressed="false"><i></i><span><strong>ARISE</strong><small id="wakeLabel">WAKE OFF</small></span></button><button id="voice" class="voice-control"><span class="voice-icon"><i></i><b></b></span><span><strong>OPEN VOICE LINK</strong><small id="voiceLabel">MICROPHONE STANDBY</small></span></button></div></header>
+      <section id="view" class="view"></section>
+    </main>
+    <aside id="inspector" class="inspector"><div class="inspector-head"><span id="inspectorTitle">CONTEXT LENS</span><button id="closeInspector">×</button></div><div id="inspectorBody" class="inspector-body"><div class="empty-lens"><i>◇</i><h3>No object selected</h3><p>Select a memory, source, node, mission step, tool, or audit event to reveal its evidence and provenance.</p></div></div></aside>
+  </div>
+  <div id="voiceOverlay" class="voice-overlay voice-dock" hidden><div class="voice-stage" data-state="connecting"><button id="closeVoice" title="Close voice session">×</button><div class="dock-header"><span>◉ LIVE VOICE LINK</span><small>NAVIGATION REMAINS ACTIVE</small></div><div class="dock-body"><div class="voice-orbit"><i></i><i></i><i></i><div class="voice-core"><span>R</span></div></div><div class="dock-copy"><div class="voice-state" id="voiceState">ALIGNING VOICE CHANNEL</div><div class="live-caption" id="liveCaption">Requesting microphone access…</div><div class="voice-help" id="voiceHelp">Speak naturally. Pause to think. Interrupt RAVEN at any time.</div><div id="micDiagnostics" class="mic-diagnostics" hidden></div></div></div><div id="voiceRecovery" class="voice-recovery" hidden><button id="retryVoice" class="primary">RETRY MICROPHONE</button><a href="http://localhost:8080" target="_blank" rel="noopener" class="external-link">OPEN RAVEN IN CHROME</a><button id="voiceToText" class="ghost">CONTINUE WITH TEXT</button></div><div class="dock-actions"><span id="dockPrivacy">MIC ACTIVE ONLY DURING THIS SESSION</span><span><button id="interruptVoice" class="button" disabled>INTERRUPT</button><button id="endVoice" class="danger-button">END SESSION</button></span></div></div></div>
+  <div id="toast"></div><script src="/static/voice_logic.js?v=20260903-voicefix1"></script><script src="/static/app.js?v=20260905-parakeet3"></script>
+<link rel="stylesheet" href="/static/workspace.css?v=20260903-voicefix1"><script src="/static/workspace.js?v=20260905-graphvoice1"></script>
+<link rel="stylesheet" href="/static/aurora.css?v=20260907a">
+<link rel="stylesheet" href="/static/forge.css?v=20260910a"><script src="/static/forge.js?v=20260910a"></script>
+<link rel="stylesheet" href="/static/world.css?v=20260908a"><script src="/static/world.js?v=20260908a"></script>
+<script src="/static/product.js?v=20260908a"></script>
+<script src="/static/geo-loader.js?v=20260910a"></script>
+</body></html>

@@ -1,0 +1,64 @@
+const fs=require('fs');
+const path=require('path');
+const assert=require('assert');
+const voiceLogic=require('../app/static/voice_logic.js');
+
+const env=Object.fromEntries(fs.readFileSync(path.join(__dirname,'..','.env'),'utf8').split(/\r?\n/).filter(x=>x.includes('=')).map(x=>{const i=x.indexOf('=');return[x.slice(0,i),x.slice(i+1)]}));
+const origin='http://127.0.0.1:8080';
+let cookie='';
+async function request(route,options={}){
+  const response=await fetch(origin+route,{...options,headers:{...(options.headers||{}),...(cookie?{Cookie:cookie}:{})}});
+  if(response.headers.get('set-cookie'))cookie=response.headers.get('set-cookie').split(';')[0];
+  if(!response.ok)throw new Error(`${route} returned ${response.status}: ${await response.text()}`);
+  return response;
+}
+
+(async()=>{
+  await request('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:env.RAVEN_ADMIN_PASSWORD})});
+  const health=await (await request('/api/health')).json();assert.equal(health.local,true);
+  const dashboard=await (await request('/api/dashboard')).json();assert.equal(dashboard.wake_word.phrase,'ARISE');assert.match(dashboard.voice.tts,/Kokoro/);
+  const roadmap=await (await request('/api/roadmap')).json();assert(roadmap.phases.every(x=>x.description&&x.outcome&&x.dependencies.length&&x.risks.length&&x.voice_commands.length&&x.gate));
+  const youtubeTool=await (await request('/api/tools/youtube_search')).json();assert.equal(youtubeTool.status,'ready');assert(youtubeTool.voice_examples.length>=3);assert(youtubeTool.milestones.some(x=>x[0]==='Current video discovery'&&x[1]==='verified'));
+  const graph=await (await request('/api/graph')).json();assert.equal(graph.meta.dimensions,768);assert(graph.nodes.some(x=>x.type==='model'));
+  const web=await (await request('/api/web/test?q=latest%20Google%20Alphabet%20stock%20price')).json();assert.equal(web.status,'ready');assert(web.results.length>0);assert(web.market_quote);
+  const started=Date.now();const turn=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Hi Raven, are you there?',channel:'voice'})})).json();
+  assert.equal(turn.model,'RAVEN dialogue policy');assert.match(turn.answer,/hear you/i);assert.equal(turn.tokens.total,0);assert(turn.latency_ms>=0);assert(Date.now()-started<15000);
+  const social=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:turn.conversation_id,message:'Hey Raven, how are you today?',channel:'voice'})})).json();
+  assert.match(social.answer,/doing well, Noah/i);assert.equal(social.intent,'conversation');assert(social.tokens.total===0);
+  const natural=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:turn.conversation_id,message:'What makes a conversation feel natural?',channel:'voice'})})).json();
+  assert(natural.answer.trim().split(/\s+/).length<=44,natural.answer);assert((natural.answer.match(/[.!?](?:\s|$)/g)||[]).length<=2,natural.answer);assert(!/\blet me\b/i.test(natural.answer),natural.answer);
+  const general=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:turn.conversation_id,message:'In one short sentence, tell me what you can help with.',channel:'text'})})).json();
+  assert(general.answer.length>10);assert(!/temporarily busy/i.test(general.answer));assert(general.latency_ms<60000);
+  const date=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:turn.conversation_id,message:"What is today's date?",channel:'voice'})})).json();
+  assert.equal(date.intent,'temporal');assert.equal(date.tool_used,'Server clock');assert.match(date.answer,new RegExp(String(new Date().getFullYear())));assert.equal(date.tokens.total,0);
+  const provenance=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:turn.conversation_id,message:'Are you searching the web right now?',channel:'voice'})})).json();
+  assert.equal(provenance.intent,'provenance');assert.match(provenance.answer,/did not search the web/i);assert.equal(provenance.web_researched,false);
+  const continued=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:'Hi Raven, can you hear me?',channel:'voice'})})).json();
+  assert.equal(continued.conversation_id,turn.conversation_id);
+  const navigation=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:turn.conversation_id,message:'Open Research Lab',channel:'voice'})})).json();
+  assert.deepEqual(navigation.ui_action,{type:'navigate',page:'research',label:'Research Lab'});assert.equal(navigation.tokens.total,0);
+  const youtube=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:turn.conversation_id,message:'Raven, give me options of videos on local AI agents',channel:'voice'})})).json();
+  assert.equal(youtube.tool_used,'YouTube public video search');assert.equal(youtube.ui_action.type,'youtube_results');assert(youtube.ui_action.videos.length>0);assert(youtube.ui_action.videos.every(x=>/youtu\.be|youtube\.com/.test(x.url)));assert.equal(youtube.web_researched,true);
+  const youtubeOpen=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:turn.conversation_id,message:'Raven, open YouTube',channel:'voice'})})).json();
+  assert.equal(youtubeOpen.ui_action,null);assert.equal(youtubeOpen.tool_used,'YouTube verified browser control');assert.match(youtubeOpen.answer,/opened YouTube in Chrome/i);assert.equal(youtubeOpen.tokens.total,0);
+  const research=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:turn.conversation_id,message:'Do publicly available research on official Instagram publishing requirements',channel:'voice'})})).json();
+  assert.equal(research.intent,'deep_research');assert(research.research_project_id);assert.equal(research.tool_used,'RAVEN Deep Research');
+  const researchDetail=await (await request('/api/research/projects/'+research.research_project_id)).json();assert.match(researchDetail.project.status,/queued|planning|searching|synthesizing|verifying|completed/);
+  const market=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:turn.conversation_id,message:'Search the web and tell me the current price of Google stock.',channel:'voice'})})).json();
+  assert.equal(market.intent,'market');assert.equal(market.tool_used,'Yahoo Finance quote');assert.match(market.answer,/GOOGL|Alphabet|Google/i);
+  const ambiguous=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:turn.conversation_id,message:'for me in Atlanta.',channel:'voice'})})).json();
+  assert.equal(ambiguous.intent,'conversation');assert.match(ambiguous.answer,/what would you like me to check/i);assert(!/stock price/i.test(ambiguous.answer));
+  const weather=await (await request('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({conversation_id:turn.conversation_id,message:"I asked for the weather in Atlanta tomorrow.",channel:'voice'})})).json();
+  assert.equal(weather.intent,'weather');assert.equal(weather.tool_used,'Open-Meteo forecast');assert.match(weather.answer,/Atlanta/i);assert.match(weather.answer,/tomorrow|forecast|°F/i);
+  const speech=await request('/api/local-voice/synthesize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content:'ARISE Raven, can you hear me?'})});assert.equal(speech.headers.get('x-raven-voice'),'kokoro-af-heart');assert.equal(speech.headers.get('x-raven-voice-speed'),'1.27');assert.equal(speech.headers.get('x-raven-tail-silence-ms'),'70');const speechBuffer=await speech.arrayBuffer();assert(speechBuffer.byteLength>1000);
+  const audioForm=new FormData();audioForm.append('file',new Blob([speechBuffer],{type:'audio/wav'}),'arise-test.wav');const transcription=await (await request('/api/local-voice/transcribe',{method:'POST',body:audioForm})).json();assert.match(transcription.text,/arise|raven|hear/i);assert(transcription.confidence>=.3);assert(transcription.duration>=.3);
+  assert(voiceLogic.hasWakePhrase('ARISE, Raven.'));assert(!voiceLogic.hasWakePhrase('a rise in prices'));
+  assert.equal(voiceLogic.wakeGreeting('Noah'),'Good day, Noah. What can I help you with today?');
+  assert(voiceLogic.shouldInterrupt([.01,.06,.07,.08],.01,3));assert(!voiceLogic.shouldInterrupt([.01,.02,.03,.02],.01,3));
+  assert(voiceLogic.isSpeechTurn({activeFrames:12,speechMs:800,confidence:.8,noSpeechProbability:.1,text:'open research lab'}));
+  assert(!voiceLogic.isSpeechTurn({activeFrames:3,speechMs:90,confidence:.2,noSpeechProbability:.9,text:'clink'}));
+  assert(voiceLogic.isReliableWake({wake_phrase_detected:true,confidence:.8,no_speech_probability:.1,duration:.8}));
+  assert(!voiceLogic.isReliableWake({wake_phrase_detected:true,confidence:.2,no_speech_probability:.8,duration:.1}));
+  assert.deepEqual(voiceLogic.sentenceChunks('One. Two! Three? Four.'),['One.','Two!','Three?','Four.']);
+  process.stdout.write(JSON.stringify({passed:true,health:health.status,voice_model:weather.model,fast_dialogue_ms:turn.latency_ms,general_text_ms:general.latency_ms,date_verified:true,provenance_verified:true,continuity_verified:true,youtube_results:youtube.ui_action.videos.length,youtube_open_verified:true,deep_research_project:research.research_project_id,weather_ms:weather.latency_ms,market_ms:market.latency_ms,tts_ms:Number(speech.headers.get('x-raven-tts-ms')),stt_ms:transcription.processing_ms,transcript:transcription.text,wake_phrase:dashboard.wake_word.phrase,web_results:web.results.length,graph_nodes:graph.nodes.length}));
+})().catch(error=>{console.error(error.stack);process.exit(1)});

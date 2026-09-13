@@ -1,0 +1,11 @@
+use_default_settings: true
+server:
+  secret_key: "raven-local-search-not-public"
+  limiter: false
+  image_proxy: false
+search:
+  safe_search: 1
+  formats: [html, json]
+outgoing:
+  request_timeout: 8.0
+  max_request_timeout: 15.0

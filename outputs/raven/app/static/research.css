@@ -1,0 +1,8 @@
+.answer-first{border-color:#226d70;background:linear-gradient(145deg,#061719,#030b0d);box-shadow:0 16px 55px #0008,inset 0 1px #64fff01a}
+.research-prose{max-width:920px;padding:8px 10px 22px;color:var(--soft);font:14px/1.78 "Segoe UI Variable",sans-serif}
+.research-prose h2{margin:28px 0 10px;color:var(--text);font-size:21px;font-weight:350;border-bottom:1px solid var(--line);padding-bottom:9px}
+.research-prose h3,.research-prose h4{margin:22px 0 8px;color:var(--cyan);font-size:15px;font-weight:450}
+.research-prose p{margin:0 0 13px}.research-prose ul{margin:6px 0 18px;padding-left:22px}.research-prose li{margin:7px 0}.research-prose strong{color:var(--text)}
+.evidence-cite{display:inline-grid;place-items:center;padding:1px 5px;margin:0 2px;border:1px solid #2f7778;border-radius:3px;color:var(--cyan);background:#0b2929;font:8px/1.6 var(--mono)}
+.research-drawer{padding:0!important;overflow:hidden}.research-drawer>summary{cursor:pointer;padding:16px;color:var(--cyan);font:9px var(--mono);letter-spacing:.12em;list-style:none}.research-drawer>summary:after{content:'+';float:right;font-size:16px}.research-drawer[open]>summary:after{content:'–'}.research-drawer .research-query,.research-drawer .research-source{margin:0 16px}
+.research-status>div:nth-child(2) b{color:var(--cyan);letter-spacing:.08em;font-size:10px}
